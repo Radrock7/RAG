@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  ai-assistant:
+    build: .
+    ports:
+      - "7860:7860"
+    volumes:
+      - ./data:/app/data
+      - ./indices:/app/indices
+      - ./.env:/app/.env
+    environment:
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7860/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Optional: Add a file watcher service for auto-ingestion
+  file-watcher:
+    build: .
+    command: python scripts/watch_files.py
+    volumes:
+      - ./data:/app/data
+      - ./indices:/app/indices
+      - ./.env:/app/.env
+    depends_on:
+      - ai-assistant
+    restart: unless-stopped
+    profiles:
+      - auto-ingest
